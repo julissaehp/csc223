@@ -62,3 +62,9 @@ the last element which is added to the stack is the first element which is delet
 - Process of arranging elements in a specific order such as ascending or descending.
 ## merging
 - Combining two or more data structures into a single structure while maintaining its properties.
+
+  ## References: 
+
+[W3 Schools](https://www.w3schools.com/python/gloss_python_join_lists.asp)
+
+[geeksforgeeks](https://www.geeksforgeeks.org/stack-data-structure/?ref=shm)
