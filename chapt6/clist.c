@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "clist.h"
 
-
 Node* make_node(int data)
 {
     Node* new = malloc(sizeof(Node));
@@ -16,35 +15,20 @@ Node* make_node(int data)
     return new;
 }
 
-
-void insert_in_front(Node** list, Node** newnode)
-{
-    (*newnode)->next = *list;
-    *list = *newnode;
-}
-
-
-int list_length(Node* head) {
-    int count = 0;
-    Node* ptr = head;
-    while (ptr != NULL) {
-        count = count + 1;
-        ptr = ptr->next;
-    }
-    return count;
-}
-
-
 char* print_list(Node* head) {
     char* result = malloc(1024);
 
     int index = 0;
     Node* node = head;
-    while (node != NULL) {
+    if (node == NULL) {
+        result[0] = '\0';
+        return result;
+    }
+    while (node != head || index == 0) {
         int num_len = snprintf(NULL, 0, "%d", node->val);
         snprintf(result + index, 8, "%d", node->val);
         index += num_len - 1;
-        if (node->next != NULL) {
+        if (node->next != head) {
             result[++index] = ' ';
             result[++index] = '-';
             result[++index] = '>';
@@ -59,19 +43,38 @@ char* print_list(Node* head) {
     return result;
 }
 
-
-Node* find_in_list(Node* list, int target)
-{
-    Node* current = list;
-
-    for (Node* current = list; current != NULL; current = current->next) {
-        if (current->val == target) {
-            return current;
-        }
+void clist_insert_in_order(Node** list, Node** newnode) {
+    // empty list
+    if (*list == NULL) {
+        (*newnode)->next = *newnode;
+        (*list) = *newnode;
+        return;
     }
-    return NULL;
-}
 
+    // beginning insertion
+    if ((*list)->val > (*newnode)->val) {
+        (*newnode)->next = *list;
+        Node* last = *list;
+        while (last->next != *list) {
+            last = last->next;
+        }
+        last->next = *newnode;
+        (*list) = *newnode;
+        return;
+    }
+
+    // otherwise, loop through and insert
+    Node* cur = (*list)->next;
+    Node* prev = *list;
+
+    while (cur != *list && cur->val < (*newnode)->val) {
+        prev = cur;
+        cur = cur->next;
+    }
+    // insert newnode between previous and current (or at end)
+    (*newnode)->next = cur;
+    prev->next = *newnode;
+}
 
 void insert_at_end(Node** list, Node** newnode) {
     // If the list is empty, make the new node the head of the list
@@ -88,113 +91,79 @@ void insert_at_end(Node** list, Node** newnode) {
     }
 }
 
-void insert_in_order(Node** list, Node** newnode) {
-    Node *current, *previous;
-
-    previous = *list;
-    if (previous == NULL) {     
-        *list = *newnode;
-        return;
-    }
-    current = previous->next;
-    while (current != NULL && current->val > (*newnode)->val) {
-        previous = current;
-        current = current->next;
-    }
-    // insert newnode between previous and current (or at end)
-    (*newnode)->next = current;
-    previous->next = *newnode;
-}
-
-
 Node* remove_from_list(Node** list, int val) {
     Node *current, *previous;
     previous = *list;
+
+    // If the list is empty, return NULL
     if (previous == NULL) {     
         return NULL;
     }
+
     current = previous->next;
-    while (current != NULL && current->val != val) {
+
+    // If list contains only one node
+    if (previous->next == previous && previous->val == val) {
+        *list = NULL;
+        free(previous);
+        return previous;
+    }
+
+    // Traverse the list until either the end is reached or the value to be removed is found
+    while (current != *list && current->val != val) {
         previous = current;
         current = current->next;
     }
 
-    if (current == NULL) return NULL;  // val not found
+    // If the value to be removed is not found in the list return NULL
+    if (current == *list && current->val != val) { // Value not found
+        return NULL;
+    }
 
-    // disconnect found node from list and return
-    previous->next = current->next;
+    // If node to be removed is the head of the list
+    if (current == *list) {
+        previous->next = current->next;
+        *list = previous->next;
+    } else { // If node to be removed is not the head of the list
+        previous->next = current->next;
+    }
+
+    free(current);
     return current;
 }
-typedef struct Node {
-    int val;
-    struct Node *next;
-} Node;
 
-// Function to find the length of a circular linked list
-int list_length(Node *head) {
-    int count = 0;
-    Node *ptr = head;
+void insert_at_index(Node** list, int val, int index) {
+    Node* new_node = make_node(val);
 
-    // Check if the list is empty
-    if (head == NULL) {
-        return count;
+    if (*list == NULL) { // If the list is empty, insert the node as the only node
+        *list = new_node;
+        new_node->next = new_node; // Circular reference to itself
+        return;
     }
 
-    // Traverse the circular list
-    do {
-        count = count + 1;
-        ptr = ptr->next;
-    } while (ptr != head);
-
-    return count;
-}
-
-// Function to insert a node at the end of the circular linked list
-void insert_at_end(Node **head, int data) {
-    Node *new_node = (Node *)malloc(sizeof(Node));
-    new_node->val = data;
-    new_node->next = *head;
-
-    if (*head == NULL) {
-        *head = new_node;
-        new_node->next = *head;
-    } else {
-        Node *temp = *head;
-        while (temp->next != *head) {
-            temp = temp->next;
+    if (index <= 0) { // Insert at the beginning of the list
+        Node* last_node = *list;
+        while (last_node->next != *list) {
+            last_node = last_node->next;
         }
-        temp->next = new_node;
-    }
-}
-
-// Function to display the circular linked list
-void display_list(Node *head) {
-    Node *current = head;
-
-    if (head != NULL) {
-        do {
-            printf("%d ", current->val);
-            current = current->next;
-        } while (current != head);
-        printf("\n");
-    }
-}
-
-int main() {
-    Node *circularList = NULL;
-
-    // Insert nodes at the end to create a circular linked list
-    for (int i = 1; i <= 5; i++) {
-        insert_at_end(&circularList, i);
+        last_node->next = new_node;
+        new_node->next = *list;
+        *list = new_node;
+        return;
     }
 
-    // Display the circular linked list
-    printf("Circular Linked List: ");
-    display_list(circularList);
+    // Traverse the list to find the node at the specified index
+    Node* current = *list;
+    for (int i = 0; i < index - 1; i++) {
+        current = current->next;
+        if (current == *list) {
+            printf("Index out of range\n");
+            return;
+        }
+    }
 
-    // Find the length of the circular linked list
-    int length = list_length(circularList);
-    printf("Length of the circular linked list: %d\n", length);
-
-    return 0;
+    // Insert the node at the specified index
+    new_node->next = current->next;
+    current->next = new_node;
 }
+
